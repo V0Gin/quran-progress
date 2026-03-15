@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>متابعة حفظ القرآن الكريم</title>
+  <meta name="description" content="موقع لمتابعة حفظ القرآن الكريم - التسميع اليومي والمراجعة الأسبوعية والاختبارات">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ========== Navigation ========== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-top">
+      <div class="nav-title">
+        <span>📖</span> متابعة الحفظ
+      </div>
+      <div class="nav-controls">
+        <select class="user-select" id="userSelect" onchange="changeUser()">
+          <option value="الكل">👥 الكل</option>
+          <option value="عبدالله">عبدالله</option>
+          <option value="أصيل">أصيل</option>
+        </select>
+        <select class="theme-toggle" id="themeToggle" onchange="changeTheme()">
+          <option value="light">☀️ فاتح</option>
+          <option value="dark">🌙 داكن</option>
+          <option value="quran">📖 مصحف</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-tabs" id="navTabs">
+      <button class="nav-tab active" data-section="home" onclick="showSection('home')">الرئيسية</button>
+      <button class="nav-tab" data-section="tasmee" onclick="showSection('tasmee')">التسميع اليومي</button>
+      <button class="nav-tab" data-section="revision" onclick="showSection('revision')">المراجعة الأسبوعية</button>
+      <button class="nav-tab" data-section="exams" onclick="showSection('exams')">الاختبارات</button>
+      <button class="nav-tab" data-section="test" onclick="showSection('test')">اختبر نفسك</button>
+      <button class="nav-tab" data-section="stats" onclick="showSection('stats')">الإحصائيات</button>
+    </div>
+  </nav>
+
+  <!-- ========== Main Content ========== -->
+  <main class="container">
+
+    <!-- ===== الرئيسية (Dashboard) ===== -->
+    <section class="section active" id="section-home">
+      <div class="welcome-banner">
+        <h2>بسم الله الرحمن الرحيم ✨</h2>
+        <p>مرحبًا بك في صفحة متابعة حفظ القرآن الكريم</p>
+      </div>
+
+      <h1 class="section-title">لوحة المتابعة</h1>
+
+      <div class="cards-grid" id="dashboardCards">
+        <div class="stat-card purple">
+          <div class="stat-icon">🎙️</div>
+          <div class="stat-value" id="dash-tasmee-avg">0</div>
+          <div class="stat-label">متوسط درجات التسميع</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">📗</div>
+          <div class="stat-value" id="dash-revision-avg">0</div>
+          <div class="stat-label">متوسط درجات المراجعة</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value" id="dash-exam-avg">0</div>
+          <div class="stat-label">متوسط درجات الاختبارات</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">📊</div>
+          <div class="stat-value" id="dash-tasmee-count">0</div>
+          <div class="stat-label">عدد جلسات التسميع</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value" id="dash-exam-count">0</div>
+          <div class="stat-label">عدد الاختبارات</div>
+        </div>
+        <div class="stat-card green" id="dash-juz-card">
+          <div class="stat-icon">📖</div>
+          <div class="stat-value" id="dash-juz-progress">0 / 30</div>
+          <div class="stat-label">تقدم الأجزاء</div>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" id="dash-juz-bar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Hifz Progress -->
+      <div class="hifz-progress-card" id="dash-hifz-card" style="display:none">
+        <h3>🌟 تقدم الحفظ الكلي</h3>
+        <div class="hifz-pct" id="dash-hifz-pct">0%</div>
+        <div class="hifz-location" id="dash-hifz-location">لم يتم تسجيل حفظ بعد</div>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="dash-hifz-bar" style="width:0%"></div>
+          </div>
+          <div class="progress-text" id="dash-hifz-text">الفاتحة آية 1 → الناس آية 6</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== التسميع اليومي ===== -->
+    <section class="section" id="section-tasmee">
+      <h2 class="section-title">التسميع اليومي</h2>
+
+      <div class="form-card">
+        <h3>📝 إضافة تسميع جديد</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tasmee-day">اليوم</label>
+            <select id="tasmee-day">
+              <option value="السبت">السبت</option>
+              <option value="الأحد">الأحد</option>
+              <option value="الاثنين">الاثنين</option>
+              <option value="الثلاثاء">الثلاثاء</option>
+              <option value="الأربعاء">الأربعاء</option>
+              <option value="الخميس">الخميس</option>
+              <option value="الجمعة">الجمعة</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tasmee-date">التاريخ</label>
+            <input type="date" id="tasmee-date">
+          </div>
+
+          <!-- المراجعة section -->
+          <div class="form-section-label">📗 المراجعة</div>
+          <div class="form-group">
+            <label for="tasmee-rev-start-surah">من سورة</label>
+            <select id="tasmee-rev-start-surah" onchange="updateTasmeeRangeAyah('rev','start')"></select>
+          </div>
+          <div class="form-group">
+            <label for="tasmee-rev-start-ayah">من آية</label>
+            <input type="number" id="tasmee-rev-start-ayah" min="1" placeholder="رقم الآية">
+          </div>
+          <div class="form-group">
+            <label for="tasmee-rev-end-surah">إلى سورة</label>
+            <select id="tasmee-rev-end-surah" onchange="updateTasmeeRangeAyah('rev','end')"></select>
+          </div>
+          <div class="form-group">
+            <label for="tasmee-rev-end-ayah">إلى آية</label>
+            <input type="number" id="tasmee-rev-end-ayah" min="1" placeholder="رقم الآية">
+          </div>
+          <div class="checkbox-group" style="grid-column: 1 / -1">
+            <input type="checkbox" id="tasmee-rev-same-surah" onchange="handleTasmeeSameSurah('rev')">
+            <label class="toggle-switch" for="tasmee-rev-same-surah"></label>
+            <span class="toggle-label">نفس السورة</span>
+          </div>
+
+          <!-- الحفظ الجديد section -->
+          <div class="form-section-label">📖 الحفظ الجديد</div>
+          <div class="form-group">
+            <label for="tasmee-new-start-surah">من سورة</label>
+            <select id="tasmee-new-start-surah" onchange="updateTasmeeRangeAyah('new','start')"></select>
+          </div>
+          <div class="form-group">
+            <label for="tasmee-new-start-ayah">من آية</label>
+            <input type="number" id="tasmee-new-start-ayah" min="1" placeholder="رقم الآية">
+          </div>
+          <div class="form-group">
+            <label for="tasmee-new-end-surah">إلى سورة</label>
+            <select id="tasmee-new-end-surah" onchange="updateTasmeeRangeAyah('new','end')"></select>
+          </div>
+          <div class="form-group">
+            <label for="tasmee-new-end-ayah">إلى آية</label>
+            <input type="number" id="tasmee-new-end-ayah" min="1" placeholder="رقم الآية">
+          </div>
+          <div class="checkbox-group" style="grid-column: 1 / -1">
+            <input type="checkbox" id="tasmee-new-same-surah" onchange="handleTasmeeSameSurah('new')">
+            <label class="toggle-switch" for="tasmee-new-same-surah"></label>
+            <span class="toggle-label">نفس السورة</span>
+          </div>
+          <div class="form-group">
+            <label for="tasmee-revision-grade">درجة المراجعة من 10</label>
+            <input type="number" id="tasmee-revision-grade" min="0" max="10" step="0.5" placeholder="0 - 10">
+          </div>
+          <div class="form-group">
+            <label for="tasmee-new-grade">درجة الحفظ الجديد من 10</label>
+            <input type="number" id="tasmee-new-grade" min="0" max="10" step="0.5" placeholder="0 - 10">
+          </div>
+          <div class="form-group full">
+            <label for="tasmee-notes">ملاحظات</label>
+            <textarea id="tasmee-notes" placeholder="أي ملاحظات إضافية..."></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addTasmee()">✅ إضافة التسميع</button>
+      </div>
+
+      <!-- جدول سجلات التسميع -->
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>📋 سجل التسميع</h3>
+        </div>
+        <div class="table-scroll" id="tasmee-table-container">
+          <div class="empty-state" id="tasmee-empty">
+            <div class="empty-icon">📭</div>
+            <p>لا توجد سجلات بعد</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== المراجعة الأسبوعية ===== -->
+    <section class="section" id="section-revision">
+      <h2 class="section-title">المراجعة الأسبوعية</h2>
+
+      <div class="form-card">
+        <h3>📗 إضافة مراجعة جديدة</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="revision-day">اليوم</label>
+            <select id="revision-day">
+              <option value="السبت">السبت</option>
+              <option value="الأحد">الأحد</option>
+              <option value="الاثنين">الاثنين</option>
+              <option value="الثلاثاء">الثلاثاء</option>
+              <option value="الأربعاء">الأربعاء</option>
+              <option value="الخميس">الخميس</option>
+              <option value="الجمعة">الجمعة</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="revision-date">التاريخ</label>
+            <input type="date" id="revision-date">
+          </div>
+          <div class="form-group">
+            <label for="revision-start-surah">من سورة</label>
+            <select id="revision-start-surah" onchange="updateRevisionAyah('start')"></select>
+          </div>
+          <div class="form-group">
+            <label for="revision-start-ayah">من آية</label>
+            <input type="number" id="revision-start-ayah" min="1" placeholder="رقم الآية">
+          </div>
+          <div class="form-group">
+            <label for="revision-end-surah">إلى سورة</label>
+            <select id="revision-end-surah" onchange="updateRevisionAyah('end')"></select>
+          </div>
+          <div class="form-group">
+            <label for="revision-end-ayah">إلى آية</label>
+            <input type="number" id="revision-end-ayah" min="1" placeholder="رقم الآية">
+          </div>
+          <div class="checkbox-group" style="grid-column: 1 / -1">
+            <input type="checkbox" id="revision-same-surah" onchange="handleRevisionSameSurah()">
+            <label class="toggle-switch" for="revision-same-surah"></label>
+            <span class="toggle-label">نفس السورة</span>
+          </div>
+          <div class="form-group">
+            <label for="revision-grade">الدرجة من 10</label>
+            <input type="number" id="revision-grade" min="0" max="10" step="0.5" placeholder="0 - 10">
+          </div>
+          <div class="form-group full">
+            <label for="revision-notes">ملاحظات</label>
+            <textarea id="revision-notes" placeholder="أي ملاحظات إضافية..."></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addRevision()">✅ إضافة المراجعة</button>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>📋 سجل المراجعة</h3>
+        </div>
+        <div class="table-scroll" id="revision-table-container">
+          <div class="empty-state" id="revision-empty">
+            <div class="empty-icon">📭</div>
+            <p>لا توجد سجلات بعد</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== الاختبارات ===== -->
+    <section class="section" id="section-exams">
+      <h2 class="section-title">الاختبارات</h2>
+
+      <div class="form-card">
+        <h3>🏆 إضافة اختبار جديد</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="exam-juz">رقم الجزء</label>
+            <input type="number" id="exam-juz" min="1" max="30" placeholder="1 - 30">
+          </div>
+          <div class="form-group">
+            <label for="exam-date">التاريخ</label>
+            <input type="date" id="exam-date">
+          </div>
+          <div class="form-group">
+            <label for="exam-grade">الدرجة من 20</label>
+            <input type="number" id="exam-grade" min="0" max="20" step="0.5" placeholder="0 - 20">
+          </div>
+          <div class="form-group full">
+            <label for="exam-notes">ملاحظات</label>
+            <textarea id="exam-notes" placeholder="أي ملاحظات إضافية..."></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addExam()">✅ إضافة الاختبار</button>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>📋 سجل الاختبارات</h3>
+        </div>
+        <div class="table-scroll" id="exam-table-container">
+          <div class="empty-state" id="exam-empty">
+            <div class="empty-icon">📭</div>
+            <p>لا توجد سجلات بعد</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== اختبار (Random Ayah Test) ===== -->
+    <section class="section" id="section-test">
+      <h2 class="section-title">اختبر نفسك</h2>
+
+      <div class="test-card">
+        <h3>🎯 حدد النطاق</h3>
+
+        <div class="range-mode-selector">
+          <label class="range-mode-option">
+            <input type="radio" name="test-range-mode" value="custom" checked onchange="toggleTestRangeMode()">
+            <span>نطاق مخصص</span>
+          </label>
+          <label class="range-mode-option">
+            <input type="radio" name="test-range-mode" value="hifz" onchange="toggleTestRangeMode()">
+            <span>📚 اختبر لمقدار حفظك</span>
+          </label>
+        </div>
+
+        <div class="form-grid" id="test-custom-range">
+          <div class="form-group">
+            <label for="test-start-surah">من سورة</label>
+            <select id="test-start-surah" onchange="updateTestAyahMax('start'); handleSameSurahCheck()"></select>
+          </div>
+          <div class="form-group">
+            <label for="test-start-ayah">من آية</label>
+            <input type="number" id="test-start-ayah" min="1" value="1" placeholder="رقم الآية">
+          </div>
+          <div class="form-group">
+            <label for="test-end-surah">إلى سورة</label>
+            <select id="test-end-surah" onchange="updateTestAyahMax('end')"></select>
+          </div>
+          <div class="form-group">
+            <label for="test-end-ayah">إلى آية</label>
+            <input type="number" id="test-end-ayah" min="1" placeholder="رقم الآية">
+          </div>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="test-same-surah" onchange="handleSameSurahCheck()">
+          <label class="toggle-switch" for="test-same-surah"></label>
+          <span class="toggle-label">نفس السورة</span>
+        </div>
+
+        <!-- Display options -->
+        <div class="checkbox-group">
+          <input type="checkbox" id="test-show-surah" checked>
+          <label class="toggle-switch" for="test-show-surah"></label>
+          <span class="toggle-label">إظهار اسم السورة</span>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="test-show-ayah-num" checked>
+          <label class="toggle-switch" for="test-show-ayah-num"></label>
+          <span class="toggle-label">إظهار رقم الآية</span>
+        </div>
+
+        <!-- Test method buttons -->
+        <button class="btn btn-primary" onclick="runTest('continue')">ابدأ من الآية</button>
+        <button class="btn btn-primary" style="background:var(--green); margin-top:8px" onclick="runTest('previous')">ما الآية التي قبلها؟</button>
+        <button class="btn btn-primary" style="background:var(--teal, #0B6E4F); margin-top:8px" onclick="runTest('skip2')">ما الآية بعد آيتين؟</button>
+        <button class="btn btn-primary" style="background:var(--red, #e74c3c); margin-top:8px" onclick="runTest('identify')">من أي سورة هذه الآية؟</button>
+        <button class="btn btn-primary" style="background:var(--orange); margin-top:8px" onclick="runTest('random')">🎲 عشوائي</button>
+      </div>
+
+      <!-- Question display -->
+      <div class="verse-result" id="verse-result">
+        <div class="verse-result-label" id="verse-question-label"></div>
+        <div class="verse-text-container">
+          <div class="verse-text" id="verse-text"></div>
+        </div>
+        <div class="verse-reference" id="verse-reference"></div>
+
+        <!-- Answer section (hidden until revealed) -->
+        <div id="answer-section" style="display:none; margin-top:20px">
+          <div class="verse-result-label" id="answer-label"></div>
+          <div class="verse-text-container">
+            <div class="verse-text" id="answer-text"></div>
+          </div>
+          <div class="verse-reference" id="answer-reference"></div>
+        </div>
+
+        <!-- Multiple choice options for identify method -->
+        <div id="identify-options" style="display:none; margin-top:16px"></div>
+        <div id="identify-result" style="display:none; margin-top:12px; text-align:center; font-weight:700; font-size:1.1rem"></div>
+
+        <button class="btn btn-primary" id="btn-show-answer" onclick="showAnswer()" style="margin-top:16px">🔍 عرض الإجابة</button>
+        <button class="btn-secondary" onclick="nextQuestion()" style="margin-top:8px">سؤال آخر ➡️</button>
+      </div>
+    </section>
+
+
+    <!-- ===== الإحصائيات ===== -->
+    <section class="section" id="section-stats">
+      <h2 class="section-title">الإحصائيات</h2>
+
+      <div class="cards-grid">
+        <div class="stat-card purple">
+          <div class="stat-icon">🎙️</div>
+          <div class="stat-value" id="stats-tasmee-avg">0</div>
+          <div class="stat-label">متوسط درجات التسميع</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">📗</div>
+          <div class="stat-value" id="stats-revision-avg">0</div>
+          <div class="stat-label">متوسط درجات المراجعة</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value" id="stats-exam-avg">0</div>
+          <div class="stat-label">متوسط درجات الاختبارات</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">📊</div>
+          <div class="stat-value" id="stats-tasmee-count">0</div>
+          <div class="stat-label">عدد جلسات التسميع</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value" id="stats-exam-count">0</div>
+          <div class="stat-label">عدد الاختبارات</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">📚</div>
+          <div class="stat-value" id="stats-revision-count">0</div>
+          <div class="stat-label">عدد جلسات المراجعة</div>
+        </div>
+        <div class="stat-card green" id="stats-juz-card">
+          <div class="stat-icon">📖</div>
+          <div class="stat-value" id="stats-juz-progress">0 / 30</div>
+          <div class="stat-label">تقدم الأجزاء</div>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" id="stats-juz-bar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Hifz Progress (Stats) -->
+      <div class="hifz-progress-card" id="stats-hifz-card" style="display:none">
+        <h3>🌟 تقدم الحفظ الكلي</h3>
+        <div class="hifz-pct" id="stats-hifz-pct">0%</div>
+        <div class="hifz-location" id="stats-hifz-location">لم يتم تسجيل حفظ بعد</div>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="stats-hifz-bar" style="width:0%"></div>
+          </div>
+          <div class="progress-text" id="stats-hifz-text">الفاتحة آية 1 → الناس آية 6</div>
+        </div>
+      </div>
+
+      <!-- Performance Dashboard Cards -->
+      <h2 class="section-title" id="perf-title" style="margin-top:24px">🏅 لوحة الأداء</h2>
+      <div class="cards-grid" id="perf-cards">
+        <div class="stat-card green">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value" id="stats-best-grade">-</div>
+          <div class="stat-label">أفضل درجة تسميع</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon">📉</div>
+          <div class="stat-value" id="stats-worst-grade">-</div>
+          <div class="stat-label">أضعف درجة تسميع</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon">📆</div>
+          <div class="stat-value" id="stats-month-avg">-</div>
+          <div class="stat-label">متوسط هذا الشهر</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value" id="stats-streak">0</div>
+          <div class="stat-label">أيام التسميع المتتالية</div>
+        </div>
+      </div>
+
+      <!-- Juz Grid Map -->
+      <div class="juz-grid-wrapper" id="juz-grid-wrapper">
+        <h3>🗺️ خريطة الأجزاء</h3>
+        <div class="juz-grid" id="juz-grid-container"></div>
+      </div>
+
+      <!-- Tasmee Progress Chart -->
+      <div class="chart-wrapper">
+        <h3>📈 تقدم درجات التسميع</h3>
+        <div class="chart-canvas-container">
+          <canvas id="tasmeeChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========== Toast Notification ========== -->
+  <div class="toast" id="toast">تم الحفظ بنجاح ✅</div>
+
+  <!-- ========== Footer ========== -->
+  <footer class="footer">
+    متابعة الحفظ .. عبدالله 🤍 أصيل
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
